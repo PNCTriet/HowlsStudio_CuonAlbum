@@ -11,8 +11,6 @@ import { encodeImageUrl, getImageDisplayName } from '@/utils/imageUtils';
 import { 
   IconSearch, 
   IconDownload, 
-  IconFilter, 
-  IconX, 
   IconUser,
   IconPhoto,
   IconCheck,
@@ -22,9 +20,10 @@ import {
 interface HomePageProps {
   photoPaths: string[];
   avatarPaths: string[];
+  config?: { USE_SUPABASE: boolean };
 }
 
-const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
+const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths, config }) => {
   const [tags, setTags] = useState<TagData>({});
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedAvatars, setSelectedAvatars] = useState<string[]>([]);
@@ -139,8 +138,6 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
     setSearchTerm('');
   }, []);
 
-
-
   const handlePhotoSelect = useCallback((photoPath: string) => {
     setSelectedPhotos(prev => 
       prev.includes(photoPath) 
@@ -205,10 +202,6 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
     return memoizedPhotoAvatarsForDisplay[photoPath] || [];
   }, [memoizedPhotoAvatarsForDisplay]);
 
-  const getAvatarName = useCallback((avatarPath: string) => {
-    return getImageDisplayName(avatarPath);
-  }, []);
-
   // Pagination logic
   const PHOTOS_PER_PAGE = 60;
   const totalPages = Math.ceil(filteredPhotos.length / PHOTOS_PER_PAGE);
@@ -269,6 +262,13 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
                 <IconCheck size={16} />
                 <span>{stats.totalTags} tags</span>
               </div>
+              {config && (
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded text-xs ${config.USE_SUPABASE ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+                    {config.USE_SUPABASE ? 'SUPABASE' : 'LOCAL'}
+                  </span>
+                </div>
+              )}
             </div>
             <ClearData />
           </div>
@@ -290,8 +290,6 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
             />
           </div>
 
-
-
           {/* Download Button */}
           <button
             onClick={handleDownload}
@@ -301,8 +299,6 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
             <IconDownload size={16} />
             Download ({selectedPhotos.length})
           </button>
-
-
         </div>
 
         {/* Selection Controls */}
@@ -344,7 +340,7 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">
               {searchTerm 
-                ? `No photos found for "${searchTerm}"`
+                ? `No photos found for &quot;${searchTerm}&quot;`
                 : "No photos found matching your criteria."
               }
             </p>
@@ -354,7 +350,7 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
               </p>
             )}
           </div>
-                ) : (
+        ) : (
           <>
             {/* Photo Grid */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
@@ -434,7 +430,7 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
               <div className="text-center mt-4 text-gray-400 text-sm">
                 {searchTerm && (
                   <div className="mb-2">
-                    <span className="text-blue-400">Search results for "{searchTerm}":</span>
+                    <span className="text-blue-400">Search results for &quot;{searchTerm}&quot;:</span>
                   </div>
                 )}
                 Showing {startIndex + 1}-{Math.min(endIndex, filteredPhotos.length)} of {filteredPhotos.length} photos
@@ -444,8 +440,6 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
         )}
       </div>
 
-
-
       {/* Download Confirmation Modal */}
       {showDownloadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -454,7 +448,7 @@ const HomePage: React.FC<HomePageProps> = ({ photoPaths, avatarPaths }) => {
             
             <div className="space-y-4">
               <div className="text-gray-300">
-                <p>You're about to download {selectedPhotos.length} photos</p>
+                <p>You&apos;re about to download {selectedPhotos.length} photos</p>
                 <p>Estimated size: ~{Math.round(selectedPhotos.length * 12)} MB</p>
               </div>
 

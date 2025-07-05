@@ -60,7 +60,7 @@ const PhotoGridItem = memo<PhotoGridItemProps>(
           alt={photoPath.split("/").pop()}
           className="w-full h-48 object-cover group-hover:blur-sm group-hover:brightness-50 transition-all duration-200"
           onLoad={() => onImageLoad?.(photoPath, encodedPhotoPath)}
-          onError={(e) => {
+          onError={() => {
             onImageError?.(photoPath, encodedPhotoPath);
           }}
         />

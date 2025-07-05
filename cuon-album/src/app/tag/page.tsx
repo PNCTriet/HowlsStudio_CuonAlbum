@@ -6,15 +6,15 @@ import BottomBar from '@/components/BottomBar';
 import Sidebar from '@/components/Sidebar';
 import SaveNotification from '@/components/SaveNotification';
 import { StorageService, TagData } from '@/services/storageService';
-import { encodeImageUrl, getImageDisplayName } from '@/utils/imageUtils';
-import { IconMoon, IconSun, IconSettings } from '@tabler/icons-react';
+import { IconSettings } from '@tabler/icons-react';
 
 interface TagPageProps {
   photoPaths: string[];
   avatarPaths: string[];
+  config?: { USE_SUPABASE: boolean };
 }
 
-const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
+const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) => {
   const [tagMap, setTagMap] = useState<TagData>({});
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
@@ -146,7 +146,7 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
       
       // Save to localStorage and export
       await StorageService.saveTags(finalTagMap);
-      StorageService.exportTags();
+      await StorageService.exportTags();
       setSaveNotification({ message: 'Data exported and saved to file!', isVisible: true });
     } catch (error) {
       console.error('Export failed:', error);
@@ -217,6 +217,11 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <IconSettings size={16} />
               <span>{photoPaths.length} photos, {avatarPaths.length} avatars</span>
+              {config && (
+                <span className={`px-2 py-1 rounded text-xs ${config.USE_SUPABASE ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
+                  {config.USE_SUPABASE ? 'SUPABASE' : 'LOCAL'}
+                </span>
+              )}
             </div>
           </div>
         </div>
@@ -236,7 +241,7 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
                       <span className="font-semibold">💡 Smart Suggestion:</span>
                       <span>
                         {suggestedAvatars.length} avatars frequently tagged in previous photos. 
-                        Use "Apply All" to quickly tag them all, or click individual avatars.
+                        Use &quot;Apply All&quot; to quickly tag them all, or click individual avatars.
                       </span>
                     </div>
                   </div>
@@ -248,7 +253,7 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
                     <div className="flex items-center gap-2 text-yellow-300 text-sm">
                       <span className="font-semibold">⚠️ Unsaved Changes:</span>
                       <span>
-                        You have unsaved changes. Click "Save Progress" to save your tags before moving to another photo.
+                        You have unsaved changes. Click &quot;Save Progress&quot; to save your tags before moving to another photo.
                       </span>
                     </div>
                   </div>
@@ -294,7 +299,7 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths }) => {
         totalPhotos={photoPaths.length}
         processedPhotos={processedPhotos}
       />
-      
+
       {/* Save Notification */}
       <SaveNotification
         message={saveNotification.message}

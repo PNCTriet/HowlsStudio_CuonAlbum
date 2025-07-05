@@ -24,5 +24,33 @@
     "message": "",
     "photoCount": 1,
     "totalSize": 12582912
+  },
+  {
+    "timestamp": "2025-07-05T23:42:10.915Z",
+    "message": "",
+    "photoCount": 1,
+    "totalSize": 12582912,
+    "fileName": "DSCF1614.JPG",
+    "photoPath": "/photos/DSCF1614.JPG"
+  },
+  {
+    "timestamp": "2025-07-05T23:42:34.021Z",
+    "message": "",
+    "photoCount": 1,
+    "totalSize": 12582912,
+    "fileName": "DSCF0930.JPG",
+    "photoPath": "/photos/DSCF0930.JPG"
+  },
+  {
+    "timestamp": "2025-07-05T23:42:55.612Z",
+    "message": "",
+    "photoCount": 2,
+    "totalSize": 25165824
+  },
+  {
+    "timestamp": "2025-07-05T23:42:55.913Z",
+    "message": "",
+    "photoCount": 2,
+    "totalSize": 25165824
   }
 ]

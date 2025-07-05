@@ -1,14 +1,28 @@
+'use client';
+
 import React from 'react';
 import { StorageService } from '@/services/storageService';
+import { encodeImageUrl } from '@/utils/imageUtils';
 
 interface DebugInfoProps {
-  tags: any;
+  tags: Record<string, string[]>;
   photoPaths: string[];
   avatarPaths: string[];
 }
 
+interface DebugData {
+  localStorageTags: Record<string, string[]>;
+  stats: { totalPhotos: number; taggedPhotos: number; totalTags: number };
+  photoCount: number;
+  avatarCount: number;
+  tagsFromProps: Record<string, string[]>;
+  samplePhoto: string;
+  sampleAvatar: string;
+  sampleEncodedAvatar: string;
+}
+
 const DebugInfo: React.FC<DebugInfoProps> = ({ tags, photoPaths, avatarPaths }) => {
-  const [debugData, setDebugData] = React.useState<any>({});
+  const [debugData, setDebugData] = React.useState<DebugData | null>(null);
 
   React.useEffect(() => {
     const loadDebugData = async () => {
@@ -22,8 +36,8 @@ const DebugInfo: React.FC<DebugInfoProps> = ({ tags, photoPaths, avatarPaths }) 
           photoCount: photoPaths.length,
           avatarCount: avatarPaths.length,
           tagsFromProps: tags,
-          samplePhoto: photoPaths[0],
-          sampleAvatar: avatarPaths[0],
+          samplePhoto: photoPaths[0] || '',
+          sampleAvatar: avatarPaths[0] || '',
           sampleEncodedAvatar: encodeURIComponent(avatarPaths[0] || ''),
         });
       } catch (error) {
@@ -34,7 +48,7 @@ const DebugInfo: React.FC<DebugInfoProps> = ({ tags, photoPaths, avatarPaths }) 
     loadDebugData();
   }, [tags, photoPaths, avatarPaths]);
 
-  if (!debugData.stats) return null;
+  if (!debugData?.stats) return null;
 
   return (
     <div className="fixed bottom-4 left-4 bg-black/80 text-white p-4 rounded-lg text-xs max-w-md z-50">

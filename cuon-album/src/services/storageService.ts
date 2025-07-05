@@ -129,21 +129,21 @@ export class StorageService {
   }
 
   // Export functions
-  static exportTags(): void {
+  static async exportTags(): Promise<void> {
     if (typeof window === 'undefined') return;
     
-    const tags = this.loadTags();
+    const tags = await this.loadTags();
     this.downloadJSON(tags, 'cuon_album_tags.json');
   }
 
-  static exportFeedback(): void {
+  static async exportFeedback(): Promise<void> {
     if (typeof window === 'undefined') return;
     
-    const feedback = this.loadFeedback();
+    const feedback = await this.loadFeedback();
     this.downloadJSON(feedback, 'cuon_album_feedback.json');
   }
 
-  private static downloadJSON(data: any, filename: string): void {
+  private static downloadJSON(data: Record<string, unknown> | unknown[], filename: string): void {
     const jsonData = JSON.stringify(data, null, 2);
     const blob = new Blob([jsonData], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -173,6 +173,7 @@ export class StorageService {
       .map(([photoPath]) => photoPath);
   }
 
+  // Get photo statistics
   static async getPhotoStats(): Promise<{ totalPhotos: number; taggedPhotos: number; totalTags: number }> {
     if (typeof window === 'undefined') {
       return {
@@ -187,7 +188,7 @@ export class StorageService {
     const totalTags = Object.values(tags).reduce((sum, avatars) => sum + avatars.length, 0);
     
     return {
-      totalPhotos: 0, // Will be set by component
+      totalPhotos: 0, // This will be set by the component
       taggedPhotos,
       totalTags
     };
