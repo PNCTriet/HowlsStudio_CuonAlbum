@@ -1,8 +1,7 @@
 'use client';
 
 import React from 'react';
-import { StorageService } from '@/services/storageService';
-import { encodeImageUrl } from '@/utils/imageUtils';
+import { StorageService } from '../services/storageService';
 
 interface DebugInfoProps {
   tags: Record<string, string[]>;

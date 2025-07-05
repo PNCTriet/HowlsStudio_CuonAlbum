@@ -18,7 +18,6 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
   const [tagMap, setTagMap] = useState<TagData>({});
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(true);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [savedTagMap, setSavedTagMap] = useState<TagData>({});
   const [suggestedAvatars, setSuggestedAvatars] = useState<string[]>([]);
@@ -48,14 +47,10 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
     });
   }, [savedTagMap]);
 
-  // Dark mode toggle
+  // Dark mode is always enabled for this page
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [isDarkMode]);
+    document.documentElement.classList.add('dark');
+  }, []);
 
   // Check for unsaved changes
   useEffect(() => {
