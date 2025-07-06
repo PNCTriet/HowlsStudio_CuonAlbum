@@ -893,7 +893,7 @@ const HomePage: React.FC = () => {
                 />
               </div>
 
-              <h3 className="text-2xl font-bold text-white mb-4">
+              <h3 className="text-2xl font-bold text-white mb-4 whitespace-nowrap">
                 🎓 Mừng các em tốt nghiệp! 🎉
               </h3>
 
