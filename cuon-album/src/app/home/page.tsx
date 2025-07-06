@@ -22,7 +22,6 @@ import {
   IconUser,
   IconPhoto,
   IconCheck,
-  IconMessage,
   IconHeart,
   IconSchool,
   IconBrandGoogle,
@@ -360,7 +359,7 @@ const HomePage: React.FC = () => {
 
   const handleAvatarClick = useCallback((avatarPath: string) => {
     setSelectedAvatars((prev) =>
-      prev.includes(avatarPath)
+      prev.includes(avatarPath) 
         ? prev.filter((avatar) => avatar !== avatarPath)
         : [...prev, avatarPath]
     );
@@ -374,7 +373,7 @@ const HomePage: React.FC = () => {
 
   const handlePhotoSelect = useCallback((photoPath: string) => {
     setSelectedPhotos((prev) =>
-      prev.includes(photoPath)
+      prev.includes(photoPath) 
         ? prev.filter((p) => p !== photoPath)
         : [...prev, photoPath]
     );
@@ -402,15 +401,15 @@ const HomePage: React.FC = () => {
         await downloadMultipleImages(selectedPhotos);
       } else {
         // For local photos, use the old method
-        for (const photoPath of selectedPhotos) {
+      for (const photoPath of selectedPhotos) {
           const link = document.createElement("a");
-          link.href = photoPath;
+        link.href = photoPath;
           link.download = photoPath.split("/").pop() || "photo.jpg";
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-
-          // Add delay to prevent browser blocking
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Add delay to prevent browser blocking
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
@@ -429,14 +428,14 @@ const HomePage: React.FC = () => {
 
   const getPhotoAvatars = useCallback(
     (photoPath: string) => {
-      return memoizedPhotoAvatars[photoPath] || [];
+    return memoizedPhotoAvatars[photoPath] || [];
     },
     [memoizedPhotoAvatars]
   );
 
   const getPhotoAvatarsForDisplay = useCallback(
     (photoPath: string) => {
-      return memoizedPhotoAvatarsForDisplay[photoPath] || [];
+    return memoizedPhotoAvatarsForDisplay[photoPath] || [];
     },
     [memoizedPhotoAvatarsForDisplay]
   );
@@ -652,7 +651,7 @@ const HomePage: React.FC = () => {
         ) : filteredPhotos.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400 text-lg">
-              {searchTerm
+              {searchTerm 
                 ? `No photos found for &quot;${searchTerm}&quot;`
                 : "No photos found matching your criteria."}
             </p>
@@ -662,7 +661,7 @@ const HomePage: React.FC = () => {
               </p>
             )}
           </div>
-        ) : (
+                ) : (
           <>
             {/* Photo Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
@@ -671,7 +670,7 @@ const HomePage: React.FC = () => {
                 const photoAvatarsForDisplay =
                   getPhotoAvatarsForDisplay(photoPath);
                 const isSelected = selectedPhotos.includes(photoPath);
-
+                
                 return (
                   <PhotoGridItem
                     key={photoPath}
@@ -788,7 +787,7 @@ const HomePage: React.FC = () => {
             <h3 className="text-lg font-semibold text-white mb-4">
               Confirm Download
             </h3>
-
+            
             <div className="space-y-4">
               <div className="text-gray-300">
                 <p>
@@ -819,14 +818,14 @@ const HomePage: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       {/* Save Notification */}
       <SaveNotification
         message={saveNotification.message}
         isVisible={saveNotification.isVisible}
         onClose={() => setSaveNotification({ message: "", isVisible: false })}
       />
-
+      
       {/* Photo Detail Modal */}
       {(() => {
         const photoAvatars = getPhotoAvatars(selectedPhotoForDetail);
@@ -843,14 +842,14 @@ const HomePage: React.FC = () => {
         });
 
         return (
-          <PhotoDetailModal
-            isOpen={showPhotoDetail}
-            onClose={() => setShowPhotoDetail(false)}
-            photoPath={selectedPhotoForDetail}
+      <PhotoDetailModal
+        isOpen={showPhotoDetail}
+        onClose={() => setShowPhotoDetail(false)}
+        photoPath={selectedPhotoForDetail}
             photoAvatars={photoAvatars}
             photoAvatarsForDisplay={photoAvatarsForDisplay}
-            allPhotos={filteredPhotos}
-            onPhotoChange={handlePhotoChange}
+        allPhotos={filteredPhotos}
+        onPhotoChange={handlePhotoChange}
             avatarToPhotosMap={memoizedAvatarToPhotos}
           />
         );
@@ -1015,4 +1014,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage;
+export default HomePage; 

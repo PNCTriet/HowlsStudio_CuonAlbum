@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { encodeImageUrl, getImageDisplayName, downloadImage } from '@/utils/imageUtils';
-import { IconX, IconDownload, IconUser, IconChevronLeft, IconChevronRight, IconMessage } from '@tabler/icons-react';
+import { IconX, IconDownload, IconUser, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 
 interface PhotoDetailModalProps {
   isOpen: boolean;
