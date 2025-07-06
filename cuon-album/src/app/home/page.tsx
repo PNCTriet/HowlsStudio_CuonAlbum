@@ -399,11 +399,6 @@ const HomePage: React.FC = () => {
     setCurrentPage(1);
   }, [filteredPhotos]);
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  }, []);
-
   return (
     <div className="min-h-screen bg-gray-900">
       {/* Header */}

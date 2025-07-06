@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { encodeImageUrl, getSupabasePhotoUrl } from '@/utils/imageUtils';
 
 const TestPage = () => {
@@ -57,14 +57,14 @@ const TestPage = () => {
     img.src = encodedPath;
   };
 
-  const runAllTests = () => {
+  const runAllTests = useCallback(() => {
     setTestResults([]);
     testImages.forEach(testImage);
-  };
+  }, [testImages]);
 
   useEffect(() => {
     runAllTests();
-  }, []);
+  }, [runAllTests]);
 
   return (
     <div className="min-h-screen bg-gray-900 p-8">
