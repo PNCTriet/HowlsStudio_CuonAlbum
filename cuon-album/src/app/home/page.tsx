@@ -23,13 +23,13 @@ import {
 
 // Đặt normalizeAvatarPath lên đầu file, trước mọi useMemo
 const normalizeAvatarPath = (path: string): string => {
-  // Đảm bảo path luôn có prefix đúng và Unicode NFC
+  // Đảm bảo path luôn có prefix đúng (không cần Unicode normalization nữa vì đã chuyển sang không dấu)
   if (!path) return '';
   let norm = path;
   if (!norm.startsWith('/avatars/')) {
     norm = '/avatars/' + norm.replace(/^\/?avatars\//, '');
   }
-  return norm.normalize('NFC');
+  return norm;
 };
 
 const HomePage: React.FC = () => {
@@ -69,6 +69,11 @@ const HomePage: React.FC = () => {
           const avatarData = await avatarResponse.json();
           // Normalize avatar paths to NFC and add prefix
           const avatarPathsWithPrefix = avatarData.map((avatar: string) => normalizeAvatarPath(avatar));
+          console.log('Avatar paths loaded:', {
+            original: avatarData.slice(0, 5),
+            normalized: avatarPathsWithPrefix.slice(0, 5),
+            total: avatarPathsWithPrefix.length
+          });
           setAvatarPaths(avatarPathsWithPrefix);
         } else {
           console.error('Failed to load avatars.json');
@@ -163,7 +168,11 @@ const HomePage: React.FC = () => {
         console.log('Data loaded:', {
           tagsCount: Object.keys(normalizedTags).length,
           stats: loadedStats,
-          avatarStatsCount: Object.keys(loadedAvatarStats).length
+          avatarStatsCount: Object.keys(loadedAvatarStats).length,
+          sampleTags: Object.entries(normalizedTags).slice(0, 2).map(([photo, avatars]) => ({
+            photo,
+            avatars: avatars.slice(0, 3)
+          }))
         });
       } catch (error) {
         console.error('Failed to load data:', error);
@@ -441,7 +450,9 @@ const HomePage: React.FC = () => {
     console.error('Image failed to load:', {
       original: photoPath,
       encoded: encodedPath,
-      filename: photoPath.split('/').pop()
+      filename: photoPath.split('/').pop(),
+      isAvatar: photoPath.includes('/avatars/'),
+      avatarPath: photoPath.includes('/avatars/') ? photoPath : null
     });
   }, []);
 

@@ -31,26 +31,20 @@ export default function Home() {
                 <IconHeart size={32} className="text-red-400 animate-pulse ml-2" />
               </div>
               
-              <h3 className="text-2xl font-bold text-white mb-4">
+              <h3 className="text-lg sm:text-2xl font-bold text-white mb-4 whitespace-nowrap">
                 🎓 Chúc mừng tốt nghiệp! 🎓
               </h3>
               
               <div className="bg-white/10 rounded-lg p-4 mb-6">
                 <p className="text-yellow-200 text-sm font-medium">
-                  ✨ Chúc các em luôn mạnh mẽ, kiên cường và thành công trên chặng đường phía trước! ✨
+                  ✨ Chúc các em luôn mạnh mẽ, kiên cường và thành công trên mọi chặng đường phía trước! ✨
                 </p>
-                <p className="text-gray-200 text-sm leading-relaxed mt-3">
-                  Cuốn rất vui vì đã có cơ hội lưu lại cột mốc tươi đẹp này của các em.{' '} đừng quên tag{' '}
-                  <a 
-                    href="https://www.instagram.com/banhcuonniengrang/" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-blue-300 font-semibold hover:text-blue-200 underline"
-                  >
-                    @banhcuonniengrang
-                  </a>{' '}
-                  trên story để cùng chia sẻ niềm vui này nhé sốp ~ 💕
-                </p>
+                                  <p className="text-gray-200 text-sm leading-relaxed mt-3">
+                    Anh rất vui vì đã có cơ hội góp mặt và lưu lại cột mốc tươi đẹp này của các em. 💕
+                  </p>
+                  <p className="text-gray-300 text-xs mt-2 italic">
+                    Hãy thông cảm nếu platform phản hồi chậm và lag nha, có link drive dính kèm backup cho xốp
+                  </p>
               </div>
               
               <button
