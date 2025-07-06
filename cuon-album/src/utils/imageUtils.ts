@@ -166,21 +166,62 @@ export async function downloadMultipleImages(photoPaths: string[]): Promise<void
       return;
     }
 
-    // For now, download images individually since JSZip requires additional setup
-    // TODO: Add JSZip dependency if needed for bulk downloads
-    console.log('Bulk download feature requires JSZip dependency. Downloading individually...');
-    
-    for (const photoPath of photoPaths) {
-      try {
-        await downloadImage(photoPath);
-        // Add small delay to prevent overwhelming the browser
-        await new Promise(resolve => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error(`Failed to download ${photoPath}:`, error);
+    // If only one image, download directly
+    if (photoPaths.length === 1) {
+      await downloadImage(photoPaths[0]);
+      return;
+    }
+
+    // For multiple images, create a ZIP file
+    try {
+      // Dynamic import of JSZip to avoid bundle size issues
+      const JSZip = (await import('jszip')).default;
+      const zip = new JSZip();
+      
+      console.log(`Starting ZIP download of ${photoPaths.length} images...`);
+      
+      // Add each image to the ZIP
+      for (const photoPath of photoPaths) {
+        try {
+          const fullResUrl = getSupabasePhotoUrl(photoPath, 'full');
+          const response = await fetch(fullResUrl);
+          if (!response.ok) throw new Error(`Failed to fetch ${photoPath}`);
+          
+          const blob = await response.blob();
+          const filename = photoPath.split('/').pop() || 'photo.jpg';
+          zip.file(filename, blob);
+          
+          console.log(`Added ${filename} to ZIP`);
+        } catch (error) {
+          console.error(`Failed to add ${photoPath} to ZIP:`, error);
+        }
+      }
+      
+      // Generate and download the ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = zipUrl;
+      link.download = `graduation_photos_${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(zipUrl), 1000);
+      
+      console.log(`ZIP download completed with ${photoPaths.length} images`);
+    } catch (zipError) {
+      console.warn('ZIP creation failed, falling back to individual downloads:', zipError);
+      
+      // Fallback to individual downloads
+      for (const photoPath of photoPaths) {
+        try {
+          await downloadImage(photoPath);
+          await new Promise(resolve => setTimeout(resolve, 100));
+        } catch (error) {
+          console.error(`Failed to download ${photoPath}:`, error);
+        }
       }
     }
-    
-    console.log(`Attempted to download ${photoPaths.length} images`);
   } catch (error) {
     console.error('Error downloading multiple images:', error);
     throw error;

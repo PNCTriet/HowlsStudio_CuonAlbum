@@ -27,7 +27,6 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 }) => {
   const [showAvatarModal, setShowAvatarModal] = useState<null | {avatar: string, photos: string[]}>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
-  const [feedbackMessage, setFeedbackMessage] = useState('');
   const [isDownloading, setIsDownloading] = useState(false);
   
   // Lock scroll when modal open
@@ -56,39 +55,13 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
     try {
       setIsDownloading(true);
       
-      // Create feedback data
-      const feedback = {
-        timestamp: new Date().toISOString(),
-        message: feedbackMessage,
-        photoCount: 1,
-        totalSize: 12 * 1024 * 1024, // 12MB per photo
-        fileName: fileName,
-        photoPath: photoPath
-      };
-
-      // Save feedback to API
-      const response = await fetch('/api/save-feedback', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(feedback),
-      });
-
-      const result = await response.json();
-
-      if (!response.ok || !result.success) {
-        throw new Error(result.message || 'Failed to save feedback');
-      }
-
       // Download the photo using full resolution
       await downloadImage(photoPath, fileName);
 
       setShowDownloadModal(false);
-      setFeedbackMessage('');
       
       // Show success message
-      alert('Download completed and feedback saved successfully!');
+      alert('Download completed successfully!');
     } catch (error) {
       console.error('Download failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
@@ -285,19 +258,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                 <p><strong>Avatar Tags:</strong> {photoAvatars.length}</p>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  <IconMessage size={16} className="inline mr-1" />
-                  Message for Developer (optional)
-                </label>
-                <textarea
-                  value={feedbackMessage}
-                  onChange={(e) => setFeedbackMessage(e.target.value)}
-                  placeholder="Any suggestions or feedback..."
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
-                  rows={3}
-                />
-              </div>
+
 
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button

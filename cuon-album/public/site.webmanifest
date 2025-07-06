@@ -1,0 +1,21 @@
+{
+  "name": "🎓 Album Tốt Nghiệp - Cuốn Studio",
+  "short_name": "Album Tốt Nghiệp",
+  "description": "Album ảnh tốt nghiệp đặc biệt - Lưu giữ những khoảnh khắc đáng nhớ của các em học sinh",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/graduation-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["photo", "education", "social"],
+  "lang": "vi",
+  "dir": "ltr"
+} 
