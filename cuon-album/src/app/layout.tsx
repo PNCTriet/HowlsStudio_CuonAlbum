@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     address: false,
     telephone: false,
   },
-  metadataBase: new URL('https://cuon-album.vercel.app'),
+  metadataBase: new URL('https://howls-studio-cuon-album.vercel.app'),
   openGraph: {
     title: "🎓 Album Tốt Nghiệp - 2025",
     description: "Album ảnh tốt nghiệp 2025 - Hoa Sen University. Chúc mừng tốt nghiệp! 🎉",
