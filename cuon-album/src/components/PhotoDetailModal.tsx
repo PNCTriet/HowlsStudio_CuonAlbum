@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { encodeImageUrl, getImageDisplayName } from '@/utils/imageUtils';
+import { encodeImageUrl, getImageDisplayName, downloadImage } from '@/utils/imageUtils';
 import { IconX, IconDownload, IconUser, IconChevronLeft, IconChevronRight, IconMessage } from '@tabler/icons-react';
 
 interface PhotoDetailModalProps {
@@ -28,9 +28,12 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
   const [showAvatarModal, setShowAvatarModal] = useState<null | {avatar: string, photos: string[]}>(null);
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   if (!isOpen) return null;
 
-  const encodedPhotoPath = encodeImageUrl(photoPath);
+  // Use thumbnail quality for display (faster loading)
+  const encodedPhotoPath = encodeImageUrl(photoPath, 'thumbnail');
   const fileName = photoPath.split('/').pop() || 'Unknown';
 
   const handleDownload = () => {
@@ -39,6 +42,8 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
   const confirmDownload = async () => {
     try {
+      setIsDownloading(true);
+      
       // Create feedback data
       const feedback = {
         timestamp: new Date().toISOString(),
@@ -64,13 +69,8 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         throw new Error(result.message || 'Failed to save feedback');
       }
 
-      // Download the photo
-      const link = document.createElement('a');
-      link.href = encodedPhotoPath;
-      link.download = fileName;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Download the photo using full resolution
+      await downloadImage(photoPath, fileName);
 
       setShowDownloadModal(false);
       setFeedbackMessage('');
@@ -81,6 +81,8 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
       console.error('Download failed:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       alert(`Download failed: ${errorMessage}. Please try again.`);
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -112,7 +114,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
   return (
     <div 
-      className="fixed inset-0 flex items-center justify-center z-50 p-2" 
+      className="fixed inset-0 flex items-center justify-center z-50 p-1 sm:p-2" 
       style={{ 
         backgroundColor: 'rgba(0, 0, 0, 0.3)',
         backdropFilter: 'blur(12px)',
@@ -122,23 +124,24 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
       onKeyDown={handleKeyDown}
       tabIndex={0}
     >
-      <div className="bg-gray-900 rounded-lg max-w-4xl w-full max-h-[70vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-gray-900 rounded-lg w-full h-full sm:h-auto sm:max-w-4xl sm:max-h-screen overflow-y-auto shadow-xl" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center justify-between p-2 border-b border-gray-700">
-          <h3 className="text-sm font-semibold text-white truncate">
+        <div className="flex items-center justify-between p-2 sm:p-3 border-b border-gray-700 sticky top-0 bg-gray-900 z-10">
+          <h3 className="text-xs sm:text-sm font-semibold text-white truncate flex-1">
             {fileName} ({currentIndex + 1} of {allPhotos.length})
           </h3>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
               onClick={handleDownload}
               className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
             >
               <IconDownload size={12} />
-              Download
+              <span className="hidden sm:inline">Download Full Res</span>
+              <span className="sm:hidden">Download</span>
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors p-1"
             >
               <IconX size={16} />
             </button>
@@ -146,68 +149,66 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex flex-col h-[calc(70vh-40px)]">
+        <div className="flex flex-col gap-2 p-2 sm:p-4">
           {/* Photo */}
-          <div className="flex-1 p-4 relative">
-            <div className="relative w-full h-full flex items-center justify-center">
-              <img
-                src={encodedPhotoPath}
-                alt={fileName}
-                className="max-w-full max-h-full object-contain rounded"
-                style={{ maxHeight: '420px' }}
-                onError={(e) => {
-                  console.error('Failed to load photo in modal:', photoPath);
-                  e.currentTarget.style.display = 'none';
-                }}
-              />
-              
-              {/* Navigation Buttons */}
-              {allPhotos.length > 1 && (
-                <>
-                  <button
-                    onClick={handlePrevious}
-                    disabled={!hasPrevious}
-                    className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 disabled:bg-black/20 disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
-                  >
-                    <IconChevronLeft size={20} />
-                  </button>
-                  <button
-                    onClick={handleNext}
-                    disabled={!hasNext}
-                    className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 disabled:bg-black/20 disabled:cursor-not-allowed text-white p-2 rounded-full transition-colors"
-                  >
-                    <IconChevronRight size={20} />
-                  </button>
-                </>
-              )}
-            </div>
+          <div className="w-full flex items-center justify-center relative">
+            <img
+              src={encodedPhotoPath}
+              alt={fileName}
+              className="max-w-full max-h-[50vh] sm:max-h-[60vh] object-contain rounded"
+              onError={(e) => {
+                console.error('Failed to load photo in modal:', photoPath);
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+            {/* Navigation Buttons */}
+            {allPhotos.length > 1 && (
+              <>
+                <button
+                  onClick={handlePrevious}
+                  disabled={!hasPrevious}
+                  className="absolute left-1 sm:left-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 disabled:bg-black/20 disabled:cursor-not-allowed text-white p-1 sm:p-2 rounded-full transition-colors"
+                >
+                  <IconChevronLeft size={16} className="sm:w-5 sm:h-5" />
+                </button>
+                <button
+                  onClick={handleNext}
+                  disabled={!hasNext}
+                  className="absolute right-1 sm:right-2 top-1/2 transform -translate-y-1/2 bg-black/50 hover:bg-black/70 disabled:bg-black/20 disabled:cursor-not-allowed text-white p-1 sm:p-2 rounded-full transition-colors"
+                >
+                  <IconChevronRight size={16} className="sm:w-5 sm:h-5" />
+                </button>
+              </>
+            )}
           </div>
 
           {/* Info Section */}
-          <div className="p-4 border-t border-gray-700">
+          <div className="border-t border-gray-700 pt-2 sm:pt-4">
             {/* File Info */}
-            <div className="mb-4">
-              <h4 className="text-white font-semibold mb-2 text-sm">File Information</h4>
-              <div className="text-gray-300 text-sm space-y-1">
+            <div className="mb-3 sm:mb-4">
+              <h4 className="text-white font-semibold mb-2 text-xs sm:text-sm">File Information</h4>
+              <div className="text-gray-300 text-xs sm:text-sm space-y-1">
                 <div><strong>Name:</strong> {fileName}</div>
                 <div><strong>Avatar Tags:</strong> {photoAvatars.length}</div>
+                <div><strong>Display:</strong> Thumbnail Quality (Fast Loading)</div>
+                <div><strong>Download:</strong> Full Resolution</div>
               </div>
             </div>
 
             {/* Avatar Tags */}
             <div>
-              <h4 className="text-white font-semibold mb-2 flex items-center gap-1 text-sm">
-                <IconUser size={14} />
+              <h4 className="text-white font-semibold mb-2 flex items-center gap-1 text-xs sm:text-sm">
+                <IconUser size={12} className="sm:w-3.5 sm:h-3.5" />
                 Avatar Tags ({photoAvatars.length})
               </h4>
               {photoAvatars.length > 0 ? (
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1 sm:gap-2">
                   {photoAvatars.map((avatarPath, index) => {
                     const encodedAvatarPath = photoAvatarsForDisplay[index];
                     return (
                       <button
                         key={avatarPath}
-                        className="flex flex-col items-center justify-center focus:outline-none w-16 h-16"
+                        className="flex flex-col items-center justify-center focus:outline-none w-12 h-12 sm:w-16 sm:h-16"
                         title={getImageDisplayName(avatarPath)}
                         onClick={() => {
                           if (avatarToPhotosMap[avatarPath]) {
@@ -218,7 +219,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                         <img
                           src={encodedAvatarPath}
                           alt={getImageDisplayName(avatarPath)}
-                          className="w-full h-full rounded-full object-cover border-4 border-blue-500"
+                          className="w-full h-full rounded-full object-cover border-2 sm:border-4 border-blue-500"
                           onError={(e) => {
                             console.error('Failed to load avatar in modal:', avatarPath);
                             e.currentTarget.style.display = 'none';
@@ -229,7 +230,7 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   })}
                 </div>
               ) : (
-                <div className="text-gray-400 text-sm italic">
+                <div className="text-gray-400 text-xs sm:text-sm italic">
                   No avatar tags for this photo
                 </div>
               )}
@@ -240,13 +241,14 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
       {/* Download Confirmation Modal */}
       {showDownloadModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={() => setShowDownloadModal(false)}>
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2" onClick={() => setShowDownloadModal(false)}>
+          <div className="bg-gray-800 rounded-lg p-4 sm:p-6 max-w-md w-full mx-2 sm:mx-4 overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <h3 className="text-lg font-semibold text-white mb-4">Confirm Download</h3>
             
             <div className="space-y-4">
-              <div className="text-gray-300">
+              <div className="text-gray-300 text-sm">
                 <p><strong>File:</strong> {fileName}</p>
+                <p><strong>Quality:</strong> Full Resolution</p>
                 <p><strong>Size:</strong> ~12 MB</p>
                 <p><strong>Avatar Tags:</strong> {photoAvatars.length}</p>
               </div>
@@ -260,21 +262,34 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
                   value={feedbackMessage}
                   onChange={(e) => setFeedbackMessage(e.target.value)}
                   placeholder="Any suggestions or feedback..."
-                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500"
+                  className="w-full p-3 bg-gray-700 border border-gray-600 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-blue-500 text-sm"
                   rows={3}
                 />
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <button
                   onClick={confirmDownload}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  disabled={isDownloading}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2 text-sm"
                 >
-                  Download
+                  {isDownloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <IconDownload size={16} />
+                      <span className="hidden sm:inline">Download Full Res</span>
+                      <span className="sm:hidden">Download</span>
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setShowDownloadModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  disabled={isDownloading}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded-lg transition-colors text-sm"
                 >
                   Cancel
                 </button>
@@ -286,25 +301,27 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
 
       {/* Avatar Photo List Modal */}
       {showAvatarModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50" onClick={() => setShowAvatarModal(null)}>
-          <div className="bg-gray-900 rounded-lg max-w-2xl w-full p-6" onClick={e => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-2" onClick={() => setShowAvatarModal(null)}>
+          <div className="bg-gray-900 rounded-lg max-w-2xl w-full p-4 sm:p-6 overflow-y-auto max-h-[90vh]" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <img
                   src={showAvatarModal.avatar}
                   alt={getImageDisplayName(showAvatarModal.avatar)}
-                  className="w-12 h-12 rounded-full object-cover border-2 border-blue-500"
+                  className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover border-2 border-blue-500"
                 />
               </div>
-              <button onClick={() => setShowAvatarModal(null)} className="text-gray-400 hover:text-white"><IconX size={24} /></button>
+              <button onClick={() => setShowAvatarModal(null)} className="text-gray-400 hover:text-white p-1">
+                <IconX size={20} className="sm:w-6 sm:h-6" />
+              </button>
             </div>
-            <div className="max-h-[480px] overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div className="max-h-[400px] sm:max-h-[480px] overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
               {showAvatarModal.photos.map(photo => (
                 <div key={photo} className="flex flex-col items-center">
                   <img
-                    src={encodeImageUrl(photo)}
+                    src={encodeImageUrl(photo, 'thumbnail')}
                     alt={photo.split('/').pop()}
-                    className="w-36 h-24 object-cover rounded border border-gray-700"
+                    className="w-24 h-16 sm:w-36 sm:h-24 object-cover rounded border border-gray-700"
                   />
                 </div>
               ))}

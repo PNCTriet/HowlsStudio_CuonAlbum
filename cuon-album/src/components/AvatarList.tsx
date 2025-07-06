@@ -8,7 +8,8 @@ interface AvatarListProps {
   selectedAvatars: string[];
   onAvatarClick: (avatarPath: string) => void;
   onClearFilter: () => void;
-  photoAvatars?: Record<string, string[]>; // To count tagged photos
+  avatarToPhotos?: Record<string, string[]>; // Direct mapping for better performance
+  avatarStats?: Record<string, number>; // Pre-calculated avatar statistics
 }
 
 const AvatarList: React.FC<AvatarListProps> = ({
@@ -16,8 +17,19 @@ const AvatarList: React.FC<AvatarListProps> = ({
   selectedAvatars,
   onAvatarClick,
   onClearFilter,
-  photoAvatars = {}
+  avatarToPhotos = {},
+  avatarStats = {}
 }) => {
+  // Helper function to normalize avatar path (handle Unicode encoding differences)
+  const normalizeAvatarPath = (path: string): string => {
+    let normalized = path;
+    if (!normalized.startsWith('/avatars/')) {
+      normalized = `/avatars/${normalized.replace(/^\/+/, '')}`;
+    }
+    // Normalize Unicode characters to handle different encodings
+    return normalized.normalize('NFC');
+  };
+
   return (
     <div className="mb-4">
       <div className="flex items-center gap-2 mb-2">
@@ -37,10 +49,9 @@ const AvatarList: React.FC<AvatarListProps> = ({
           const isSelected = selectedAvatars.includes(avatarPath);
           const encodedAvatarPath = encodeImageUrl(avatarPath);
           
-          // Count photos tagged with this avatar
-          const taggedPhotoCount = Object.values(photoAvatars).filter(
-            photoTags => photoTags.includes(avatarPath)
-          ).length;
+          // Count photos tagged with this avatar using the optimized mapping
+          const normalizedAvatarPath = normalizeAvatarPath(avatarPath);
+          const taggedPhotoCount = avatarStats[normalizedAvatarPath] || avatarToPhotos[normalizedAvatarPath]?.length || 0;
           
           return (
             <button

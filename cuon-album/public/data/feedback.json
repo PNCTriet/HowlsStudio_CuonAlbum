@@ -58,5 +58,25 @@
     "message": "Giỏi quá đi",
     "photoCount": 3,
     "totalSize": 37748736
+  },
+  {
+    "timestamp": "2025-07-06T00:40:42.733Z",
+    "message": "",
+    "photoCount": 1,
+    "totalSize": 12582912,
+    "fileName": "DSCF0930.JPG",
+    "photoPath": "/photos/DSCF0930.JPG"
+  },
+  {
+    "timestamp": "2025-07-06T00:41:37.948Z",
+    "message": "",
+    "photoCount": 2,
+    "totalSize": 25165824
+  },
+  {
+    "timestamp": "2025-07-06T01:55:38.330Z",
+    "message": "",
+    "photoCount": 5,
+    "totalSize": 62914560
   }
 ]

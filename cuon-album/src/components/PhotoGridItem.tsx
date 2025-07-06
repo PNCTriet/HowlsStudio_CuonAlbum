@@ -29,7 +29,8 @@ const PhotoGridItem = memo<PhotoGridItemProps>(
     onImageLoad,
     onImageError,
   }) => {
-    const encodedPhotoPath = encodeImageUrl(photoPath);
+    // Use thumbnail quality for faster loading in grid
+    const encodedPhotoPath = encodeImageUrl(photoPath, 'thumbnail');
 
     return (
       <div

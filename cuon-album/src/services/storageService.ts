@@ -1,3 +1,5 @@
+import { AppConfig } from '@/config/appConfig';
+
 export interface TagData {
   [photoPath: string]: string[];
 }
@@ -12,8 +14,11 @@ export interface FeedbackData {
 export class StorageService {
   private static readonly TAGS_KEY = 'cuon_album_tags';
   private static readonly FEEDBACK_KEY = 'cuon_album_feedback';
-  private static readonly TAGS_FILE_PATH = '/data/tags.json';
   private static readonly FEEDBACK_FILE_PATH = '/data/feedback.json';
+
+  private static getTagsFilePath(): string {
+    return AppConfig.USE_SUPABASE ? '/data/tags.json' : '/data/tags_local.json';
+  }
 
   // Tags Management
   static async saveTags(tags: TagData): Promise<void> {
@@ -47,7 +52,7 @@ export class StorageService {
       }
       
       // If not in localStorage, try to load from file
-      const response = await fetch(this.TAGS_FILE_PATH);
+      const response = await fetch(this.getTagsFilePath());
       if (response.ok) {
         const fileData = await response.json();
         // Also save to localStorage for faster access
@@ -192,5 +197,24 @@ export class StorageService {
       taggedPhotos,
       totalTags
     };
+  }
+
+  // Get avatar statistics for better performance
+  static async getAvatarStats(): Promise<Record<string, number>> {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+    
+    try {
+      const response = await fetch('/data/avatar_stats.json');
+      if (response.ok) {
+        const data = await response.json();
+        return data.avatar_counts || {};
+      }
+      return {};
+    } catch (error) {
+      console.error('Failed to load avatar stats:', error);
+      return {};
+    }
   }
 } 

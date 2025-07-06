@@ -6,15 +6,13 @@ import BottomBar from '@/components/BottomBar';
 import Sidebar from '@/components/Sidebar';
 import SaveNotification from '@/components/SaveNotification';
 import { StorageService, TagData } from '@/services/storageService';
+import { AppConfig } from '@/config/appConfig';
+import { encodeImageUrl } from '@/utils/imageUtils';
 import { IconSettings } from '@tabler/icons-react';
 
-interface TagPageProps {
-  photoPaths: string[];
-  avatarPaths: string[];
-  config?: { USE_SUPABASE: boolean };
-}
-
-const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) => {
+const TagPage: React.FC = () => {
+  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
+  const [avatarPaths, setAvatarPaths] = useState<string[]>([]);
   const [tagMap, setTagMap] = useState<TagData>({});
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
   const [isExporting, setIsExporting] = useState(false);
@@ -23,12 +21,88 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
   const [suggestedAvatars, setSuggestedAvatars] = useState<string[]>([]);
   const [saveNotification, setSaveNotification] = useState({ message: '', isVisible: false });
 
+  // Load photo and avatar paths
+  useEffect(() => {
+    const loadPaths = async () => {
+      try {
+        // Load avatar paths first
+        const avatarResponse = await fetch('/data/avatars.json');
+        if (avatarResponse.ok) {
+          const avatarData = await avatarResponse.json();
+          setAvatarPaths(avatarData.map((avatar: string) => `/avatars/${avatar}`));
+        }
+
+        // Load photo paths based on config
+        if (AppConfig.USE_SUPABASE) {
+          // Load photo paths from tags.json (Supabase mode)
+          const response = await fetch('/data/tags.json');
+          if (response.ok) {
+            const tagsData = await response.json();
+            // Extract photo names and convert to paths
+            const photoPathsFromTags = Object.keys(tagsData).map(photoName => `/photos/${photoName}`);
+            
+            // Filter to only include photos that actually exist
+            const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
+            setPhotoPaths(existingPhotoPaths);
+          }
+        } else {
+          // Load photo paths from tags_local.json (local mode)
+          const response = await fetch('/data/tags_local.json');
+          if (response.ok) {
+            const tagsData = await response.json();
+            // Extract photo paths directly
+            const photoPathsFromTags = Object.keys(tagsData);
+            
+            // Filter to only include photos that actually exist
+            const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
+            setPhotoPaths(existingPhotoPaths);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load paths:', error);
+      }
+    };
+
+    // Helper function to filter existing photos
+    const filterExistingPhotos = async (photoPaths: string[]): Promise<string[]> => {
+      const existingPhotos: string[] = [];
+      
+      for (const photoPath of photoPaths) {
+        try {
+          const response = await fetch(photoPath, { method: 'HEAD' });
+          if (response.ok) {
+            existingPhotos.push(photoPath);
+          }
+        } catch {
+          // Photo doesn't exist, skip it
+        }
+      }
+      
+      return existingPhotos;
+    };
+
+    loadPaths();
+  }, []);
+
   // Load tags from localStorage on mount
   useEffect(() => {
     const loadTags = async () => {
       const loadedTags = await StorageService.loadTags();
-      setTagMap(loadedTags);
-      setSavedTagMap(loadedTags);
+      
+      // Normalize avatar paths in loaded tags to match avatarPaths format
+      const normalizedTags: TagData = {};
+      Object.entries(loadedTags).forEach(([photoPath, avatarPathsInTags]) => {
+        normalizedTags[photoPath] = avatarPathsInTags.map(avatarPath => {
+          // If avatar path doesn't start with /avatars/, add it
+          if (!avatarPath.startsWith('/avatars/')) {
+            return `/avatars/${avatarPath}`;
+          }
+          return avatarPath;
+        });
+      });
+      
+      setTagMap(normalizedTags);
+      setSavedTagMap(normalizedTags);
     };
     loadTags();
   }, []);
@@ -194,6 +268,25 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
     return savedTags.length > 0 || currentTags.length > 0;
   }).length;
 
+  // Add handlers for selection functionality
+  const handleClearSelection = () => {
+    // In tag page, this could clear current photo's tags
+    handleClearAll();
+  };
+
+  const handleDownloadSelected = () => {
+    // In tag page, this could download the current photo
+    if (currentPhotoPath) {
+      // Create a temporary link to download the current photo
+      const link = document.createElement('a');
+      link.href = encodeImageUrl(currentPhotoPath, 'full');
+      link.download = currentPhotoPath.split('/').pop() || 'photo.jpg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
+
   return (
     <div className="h-screen bg-gray-900 flex flex-col overflow-hidden">
       {/* Header */}
@@ -212,9 +305,9 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
             <div className="flex items-center gap-2 text-sm text-gray-300">
               <IconSettings size={16} />
               <span>{photoPaths.length} photos, {avatarPaths.length} avatars</span>
-              {config && (
-                <span className={`px-2 py-1 rounded text-xs ${config.USE_SUPABASE ? 'bg-green-600 text-white' : 'bg-blue-600 text-white'}`}>
-                  {config.USE_SUPABASE ? 'SUPABASE' : 'LOCAL'}
+              {AppConfig.USE_SUPABASE && (
+                <span className="px-2 py-1 rounded text-xs bg-green-600 text-white">
+                  SUPABASE
                 </span>
               )}
             </div>
@@ -293,6 +386,10 @@ const TagPage: React.FC<TagPageProps> = ({ photoPaths, avatarPaths, config }) =>
         isExporting={isExporting}
         totalPhotos={photoPaths.length}
         processedPhotos={processedPhotos}
+        selectedCount={currentSelectedAvatars.length}
+        totalCount={avatarPaths.length}
+        onClearSelection={handleClearSelection}
+        onDownloadSelected={handleDownloadSelected}
       />
 
       {/* Save Notification */}

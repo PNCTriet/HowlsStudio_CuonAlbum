@@ -8,10 +8,32 @@
 
 export const AppConfig = {
   // Photo Storage Configuration
-  USE_SUPABASE: false,
+  USE_SUPABASE: true,
   
   // Supabase Configuration
   SUPABASE_BASE_URL: "https://cimvwqfnbrikogsyaqic.supabase.co/storage/v1/object/public/test/",
+  
+  // Supabase Transformations for different image qualities
+  SUPABASE_TRANSFORMATIONS: {
+    // Preview: very low resolution for fast loading in modals
+    PREVIEW: {
+      width: 300,
+      height: 225,
+      quality: 40,
+      format: 'webp'
+    },
+    // Thumbnail: very low resolution for grid
+    THUMBNAIL: {
+      width: 150,
+      height: 112,
+      quality: 30,
+      format: 'webp'
+    },
+    // Full: original resolution for download
+    FULL: {
+      quality: 100
+    }
+  },
   
   // Local Configuration
   LOCAL_PHOTOS_DIR: "/public/photos",
