@@ -26,7 +26,7 @@ export const metadata: Metadata = {
   },
   metadataBase: new URL('https://cuon-album.vercel.app'),
   openGraph: {
-    title: "🎓 Album Tốt Nghiệp - Howls Studio",
+    title: "🎓 Album Tốt Nghiệp - 2025",
     description: "Album ảnh tốt nghiệp đặc biệt - Lưu giữ những khoảnh khắc đáng nhớ của các em học sinh. Chúc mừng tốt nghiệp! 🎉",
     url: 'https://cuon-album.vercel.app',
     siteName: 'Cuốn Studio',
