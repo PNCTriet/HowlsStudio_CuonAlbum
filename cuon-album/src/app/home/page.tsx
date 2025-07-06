@@ -329,23 +329,15 @@ const HomePage: React.FC = () => {
     if (selectedAvatars.length > 0) {
       console.log("Avatar filter debug:", { selectedAvatars });
 
-      const selectedPhotoSets = selectedAvatars.map((avatar) => {
+      // Lấy hợp tất cả các tập ảnh ứng với từng avatar
+      const unionSet = new Set<string>();
+      selectedAvatars.forEach((avatar) => {
         const normAvatar = normalizeAvatarPath(avatar);
-        return memoizedAvatarToPhotos[normAvatar] || [];
+        (memoizedAvatarToPhotos[normAvatar] || []).forEach((photo) => {
+          unionSet.add(photo);
+        });
       });
-
-      // Get intersection of all selected avatar photo sets
-      if (selectedPhotoSets.length > 0) {
-        const firstSet = new Set(selectedPhotoSets[0]);
-        const intersection = selectedPhotoSets
-          .slice(1)
-          .reduce((acc, photoSet) => {
-            return new Set(
-              [...acc].filter((photo) => photoSet.includes(photo))
-            );
-          }, firstSet);
-        filtered = filtered.filter((photo) => intersection.has(photo));
-      }
+      filtered = filtered.filter((photo) => unionSet.has(photo));
     }
 
     console.log("Filter result:", { filteredCount: filtered.length });
