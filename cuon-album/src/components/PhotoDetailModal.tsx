@@ -136,11 +136,22 @@ const PhotoDetailModal: React.FC<PhotoDetailModalProps> = ({
             <div className="flex items-center gap-2">
               <button
                 onClick={handleDownload}
-                className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+                disabled={isDownloading}
+                className="flex items-center gap-1 px-2 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded text-xs transition-colors"
               >
-                <IconDownload size={16} />
-                <span className="hidden sm:inline">Download Full Res</span>
-                <span className="sm:hidden">Download</span>
+                {isDownloading ? (
+                  <>
+                    <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span className="hidden sm:inline">Downloading...</span>
+                    <span className="sm:hidden">Loading...</span>
+                  </>
+                ) : (
+                  <>
+                    <IconDownload size={16} />
+                    <span className="hidden sm:inline">Download Full Res</span>
+                    <span className="sm:hidden">Download</span>
+                  </>
+                )}
               </button>
               <button
                 onClick={onClose}

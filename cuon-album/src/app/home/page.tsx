@@ -392,8 +392,12 @@ const HomePage: React.FC = () => {
     setShowDownloadReminder(true);
   }, [selectedPhotos.length]);
 
+    const [isDownloading, setIsDownloading] = useState(false);
+
   const confirmDownload = useCallback(async () => {
     try {
+      setIsDownloading(true);
+      
       // Use the new download functionality
       if (AppConfig.USE_SUPABASE) {
         // For Supabase, use the new downloadMultipleImages function
@@ -401,15 +405,15 @@ const HomePage: React.FC = () => {
         await downloadMultipleImages(selectedPhotos);
       } else {
         // For local photos, use the old method
-      for (const photoPath of selectedPhotos) {
+        for (const photoPath of selectedPhotos) {
           const link = document.createElement("a");
-        link.href = photoPath;
+          link.href = photoPath;
           link.download = photoPath.split("/").pop() || "photo.jpg";
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Add delay to prevent browser blocking
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+
+          // Add delay to prevent browser blocking
           await new Promise((resolve) => setTimeout(resolve, 100));
         }
       }
@@ -423,6 +427,8 @@ const HomePage: React.FC = () => {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    } finally {
+      setIsDownloading(false);
     }
   }, [selectedPhotos]);
 
@@ -803,13 +809,25 @@ const HomePage: React.FC = () => {
               <div className="flex gap-3">
                 <button
                   onClick={confirmDownload}
-                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                  disabled={isDownloading}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-800 text-white rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
-                  Download
+                  {isDownloading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      Downloading...
+                    </>
+                  ) : (
+                    <>
+                      <IconDownload size={16} />
+                      Download
+                    </>
+                  )}
                 </button>
                 <button
                   onClick={() => setShowDownloadModal(false)}
-                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                  disabled={isDownloading}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded-lg transition-colors"
                 >
                   Cancel
                 </button>

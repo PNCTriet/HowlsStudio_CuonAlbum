@@ -32,10 +32,10 @@ export const metadata: Metadata = {
     siteName: 'Cuốn Studio',
     images: [
       {
-        url: '/graduation-icon.svg',
-        width: 32,
-        height: 32,
-        alt: 'Album Tốt Nghiệp - Cuốn Studio',
+        url: '/thumb.jpg',
+        width: 1200,
+        height: 630,
+        alt: 'Graduates of 2025 - Hoa Sen University',
       },
     ],
     locale: 'vi_VN',
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: "🎓 Album Tốt Nghiệp - Cuốn Studio",
     description: "Album ảnh tốt nghiệp đặc biệt - Lưu giữ những khoảnh khắc đáng nhớ của các em học sinh. Chúc mừng tốt nghiệp! 🎉",
-    images: ['/graduation-icon.svg'],
+    images: ['/thumb.jpg'],
     creator: '@banhcuonniengrang',
   },
   robots: {
@@ -66,13 +66,14 @@ export const metadata: Metadata = {
     shortcut: '/graduation-icon.svg',
   },
   manifest: '/site.webmanifest',
+};
+
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
   themeColor: '#3b82f6',
   colorScheme: 'dark',
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 1,
-  },
 };
 
 export default function RootLayout({
