@@ -43,7 +43,13 @@ export default function Home() {
                     Anh rất vui vì đã có cơ hội góp mặt và lưu lại cột mốc tươi đẹp này của các em. 💕
                   </p>
                   <p className="text-gray-300 text-xs mt-2 italic">
-                    Hãy thông cảm nếu platform phản hồi chậm và lag nha, có link drive dính kèm backup cho xốp
+                    Thông cảm nếu platform phản hồi chậm và lag nha, xu quá thì có link drive dính kèm backup cho xốp
+                  </p>
+                  <p className="text-blue-200 text-xs mt-2 italic">
+                    ⚡ Chrome/Edge đi chứ Safari khó chịu vô cùng.
+                  </p>
+                  <p className="text-blue-200 text-xs mt-1 italic">
+                    💡 Nên download hình trên máy tính tại file hình nó nặng á.
                   </p>
               </div>
               

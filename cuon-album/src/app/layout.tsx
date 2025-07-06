@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     siteName: 'Howls Studio',
     images: [
       {
-        url: 'https://cimvwqfnbrikogsyaqic.supabase.co/storage/v1/object/public/test//Visite%20virtuelle.jpg',
+        url: 'https://cimvwqfnbrikogsyaqic.supabase.co/storage/v1/object/public/test//graduation.jpg',
         width: 1200,
         height: 630,
         alt: 'Graduates of 2025 - Hoa Sen University',
