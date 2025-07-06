@@ -28,7 +28,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "🎓 Album Tốt Nghiệp - 2025",
     description: "Album ảnh tốt nghiệp 2025 - Hoa Sen University. Chúc mừng tốt nghiệp! 🎉",
-    url: 'https://cuon-album.vercel.app',
+    url: 'https://howls-studio-cuon-album.vercel.app',
     siteName: 'Howls Studio',
     images: [
       {
