@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { StorageService, TagData } from '@/services/storageService';
 import SaveNotification from '@/components/SaveNotification';
 import ClearData from '@/components/ClearData';
@@ -29,10 +29,12 @@ const HomePage: React.FC = () => {
   const [filteredPhotos, setFilteredPhotos] = useState<string[]>([]);
 
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [showDownloadReminder, setShowDownloadReminder] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
   const [stats, setStats] = useState({ totalPhotos: 0, taggedPhotos: 0, totalTags: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [saveNotification, setSaveNotification] = useState({ message: '', isVisible: false });
+  const [showBackupModal, setShowBackupModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showPhotoDetail, setShowPhotoDetail] = useState(false);
@@ -55,6 +57,7 @@ const HomePage: React.FC = () => {
 
         // Load photo paths based on config
         if (AppConfig.USE_SUPABASE) {
+          console.log('Loading photos in SUPABASE mode');
           // Load photo paths from tags.json (Supabase mode)
           const response = await fetch('/data/tags.json');
           if (response.ok) {
@@ -62,13 +65,16 @@ const HomePage: React.FC = () => {
             // Extract photo names and convert to paths
             const photoPathsFromTags = Object.keys(tagsData).map(photoName => `/photos/${photoName}`);
             
-            // Filter to only include photos that actually exist
-            const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
-            setPhotoPaths(existingPhotoPaths);
+            console.log('Supabase mode: Loaded', photoPathsFromTags.length, 'photos from tags.json');
+            
+            // For Supabase mode, trust that all photos exist (no need to check)
+            setPhotoPaths(photoPathsFromTags);
           } else {
             console.error('Failed to load tags.json');
+            setShowBackupModal(true);
           }
         } else {
+          console.log('Loading photos in LOCAL mode');
           // Load photo paths from tags_local.json (local mode)
           const response = await fetch('/data/tags_local.json');
           if (response.ok) {
@@ -76,7 +82,7 @@ const HomePage: React.FC = () => {
             // Extract photo paths directly
             const photoPathsFromTags = Object.keys(tagsData);
             
-            // Filter to only include photos that actually exist
+            // Filter to only include photos that actually exist (local mode only)
             const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
             setPhotoPaths(existingPhotoPaths);
           } else {
@@ -280,7 +286,7 @@ const HomePage: React.FC = () => {
 
   const handleDownload = useCallback(async () => {
     if (selectedPhotos.length === 0) return;
-    setShowDownloadModal(true);
+    setShowDownloadReminder(true);
   }, [selectedPhotos.length]);
 
   const confirmDownload = useCallback(async () => {
@@ -334,24 +340,52 @@ const HomePage: React.FC = () => {
     return memoizedPhotoAvatarsForDisplay[photoPath] || [];
   }, [memoizedPhotoAvatarsForDisplay]);
 
-  // Pagination logic
-  const PHOTOS_PER_PAGE = 60;
+  // Pagination logic with lazy loading - APPEND instead of replace
+  const PHOTOS_PER_PAGE = 24; // Reduced for better performance
   const totalPages = Math.ceil(filteredPhotos.length / PHOTOS_PER_PAGE);
-  const startIndex = (currentPage - 1) * PHOTOS_PER_PAGE;
-  const endIndex = startIndex + PHOTOS_PER_PAGE;
-  const currentPhotos = filteredPhotos.slice(startIndex, endIndex);
+  
+  // Show ALL photos up to current page (append mode)
+  const allPhotosToShow = filteredPhotos.slice(0, currentPage * PHOTOS_PER_PAGE);
 
-  const handlePageChange = useCallback((page: number) => {
-    setCurrentPage(page);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Lazy loading state
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  // Lazy loading with Intersection Observer
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const target = entries[0];
+        if (target.isIntersecting && currentPage < totalPages && !isLoadingMore) {
+          setIsLoadingMore(true);
+          // Simulate loading delay for better UX
+          setTimeout(() => {
+            setCurrentPage(prev => prev + 1);
+            setIsLoadingMore(false);
+          }, 300);
+        }
+      },
+      { threshold: 0.1, rootMargin: '100px' }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [currentPage, totalPages, isLoadingMore]);
+
+  // Track loaded photos
+  const handleImageLoad = useCallback((photoPath: string, encodedPath: string) => {
+    // setLoadedPhotos(prev => new Set(prev).add(photoPath)); // This line is removed as per the new_code
+    console.log('Image loaded successfully:', {
+      original: photoPath,
+      encoded: encodedPath,
+      filename: photoPath.split('/').pop()
+    });
   }, []);
 
-  // Reset to first page when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredPhotos]);
-
-  // Debug function to check image loading
   const handleImageError = useCallback((photoPath: string, encodedPath: string) => {
     console.error('Image failed to load:', {
       original: photoPath,
@@ -360,12 +394,14 @@ const HomePage: React.FC = () => {
     });
   }, []);
 
-  const handleImageLoad = useCallback((photoPath: string, encodedPath: string) => {
-    console.log('Image loaded successfully:', {
-      original: photoPath,
-      encoded: encodedPath,
-      filename: photoPath.split('/').pop()
-    });
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredPhotos]);
+
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   return (
@@ -375,12 +411,14 @@ const HomePage: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h1 className="text-xl sm:text-2xl font-bold text-white">Bánh Cuốn Gallery</h1>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
+            {/* Hidden Tag Page Button - Commented out as requested
             <a
               href="/tag"
               className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors text-sm w-full sm:w-auto text-center"
             >
               Go to Tag Page
             </a>
+            */}
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-300">
               <div className="flex items-center gap-1 sm:gap-2">
                 <IconPhoto size={14} className="sm:w-4 sm:h-4" />
@@ -492,7 +530,7 @@ const HomePage: React.FC = () => {
           <>
             {/* Photo Grid */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3 sm:gap-4">
-              {currentPhotos.map((photoPath) => {
+              {allPhotosToShow.map((photoPath) => {
                 const photoAvatars = getPhotoAvatars(photoPath);
                 const photoAvatarsForDisplay = getPhotoAvatarsForDisplay(photoPath);
                 const isSelected = selectedPhotos.includes(photoPath);
@@ -513,53 +551,25 @@ const HomePage: React.FC = () => {
               })}
             </div>
 
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-6 sm:mt-8">
-                <button
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
-                >
-                  Previous
-                </button>
-                
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (currentPage <= 3) {
-                      pageNum = i + 1;
-                    } else if (currentPage >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = currentPage - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => handlePageChange(pageNum)}
-                        className={`px-2 sm:px-3 py-2 rounded-lg transition-colors text-sm ${
-                          currentPage === pageNum
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-800 hover:bg-gray-700 text-white'
-                        }`}
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
+            {/* Loading indicator for lazy loading */}
+            {isLoadingMore && (
+              <div className="flex justify-center mt-8">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-400"></div>
+                  <span>Loading more photos...</span>
                 </div>
-                
-                <button
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-2 bg-gray-800 hover:bg-gray-700 disabled:bg-gray-900 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
+              </div>
+            )}
+
+            {/* Load more trigger */}
+            {currentPage < totalPages && !isLoadingMore && (
+              <div className="flex justify-center mt-8">
+                <div 
+                  ref={loadMoreRef}
+                  className="flex items-center gap-2 text-gray-400"
                 >
-                  Next
-                </button>
+                  <span>Scroll to load more</span>
+                </div>
               </div>
             )}
 
@@ -571,12 +581,59 @@ const HomePage: React.FC = () => {
                     <span className="text-blue-400">Search results for &quot;{searchTerm}&quot;:</span>
                   </div>
                 )}
-                Showing {startIndex + 1}-{Math.min(endIndex, filteredPhotos.length)} of {filteredPhotos.length} photos
+                Showing {allPhotosToShow.length} of {filteredPhotos.length} photos
+                {currentPage < totalPages && (
+                  <div className="mt-1">
+                    <span className="text-gray-500">(Scroll to load more)</span>
+                  </div>
+                )}
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Download Reminder Modal */}
+      {showDownloadReminder && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">🎓 Chúc mừng tốt nghiệp!</h3>
+            
+            <div className="space-y-4">
+              <div className="text-gray-300">
+                <p className="mb-3">Chúc mừng bạn đã hoàn thành chặng đường học tập! 🎉</p>
+                <div className="bg-yellow-900/30 border border-yellow-500/30 rounded-lg p-3">
+                  <p className="text-yellow-300 text-sm">
+                    <strong>💡 Lưu ý:</strong> Hệ thống download được tối ưu tốt nhất trên laptop/desktop. 
+                    Trên điện thoại có thể chậm hơn do giới hạn của trình duyệt.
+                  </p>
+                </div>
+                <p className="mt-3 text-sm">
+                  Bạn có muốn tiếp tục download {selectedPhotos.length} ảnh không?
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowDownloadReminder(false);
+                    setShowDownloadModal(true);
+                  }}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  Tiếp tục Download
+                </button>
+                <button
+                  onClick={() => setShowDownloadReminder(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Hủy
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Download Confirmation Modal */}
       {showDownloadModal && (
@@ -641,6 +698,56 @@ const HomePage: React.FC = () => {
         onPhotoChange={handlePhotoChange}
         avatarToPhotosMap={memoizedPhotoAvatars}
       />
+
+      {/* Backup Modal */}
+      {showBackupModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">⚠️ Không thể tải dữ liệu</h3>
+            
+            <div className="space-y-4">
+              <div className="text-gray-300">
+                <p className="mb-3">Xin lỗi, hệ thống không thể tải được dữ liệu ảnh. Có thể do:</p>
+                <ul className="list-disc list-inside text-sm space-y-1 mb-4">
+                  <li>Kết nối mạng không ổn định</li>
+                  <li>Hệ thống đang bảo trì</li>
+                  <li>Dữ liệu tạm thời không khả dụng</li>
+                </ul>
+                <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-3">
+                  <p className="text-blue-300 text-sm">
+                    <strong>💾 Backup:</strong> Bạn có thể truy cập ảnh qua Google Drive backup:
+                  </p>
+                  <a 
+                    href="#" 
+                    className="text-blue-400 hover:text-blue-300 underline text-sm block mt-2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      alert('Link Google Drive sẽ được cập nhật sau!');
+                    }}
+                  >
+                    🔗 Link Google Drive Backup (Sẽ cập nhật)
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.location.reload()}
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  Thử lại
+                </button>
+                <button
+                  onClick={() => setShowBackupModal(false)}
+                  className="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

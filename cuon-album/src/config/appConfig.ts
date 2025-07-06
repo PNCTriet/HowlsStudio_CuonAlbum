@@ -22,11 +22,11 @@ export const AppConfig = {
       quality: 40,
       format: 'webp'
     },
-    // Thumbnail: very low resolution for grid
+    // Thumbnail: very low resolution for grid - optimized for speed
     THUMBNAIL: {
-      width: 150,
-      height: 112,
-      quality: 30,
+      width: 120,
+      height: 90,
+      quality: 20,
       format: 'webp'
     },
     // Full: original resolution for download

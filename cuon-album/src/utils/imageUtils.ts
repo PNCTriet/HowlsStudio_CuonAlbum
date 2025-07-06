@@ -55,7 +55,11 @@ export function encodeImageUrl(url: string, quality: ImageQuality = 'preview'): 
     if (url.startsWith('/photos/')) {
       if (AppConfig.USE_SUPABASE) {
         // Use Supabase storage with specified quality
-        return getSupabasePhotoUrl(url, quality);
+        const supabaseUrl = getSupabasePhotoUrl(url, quality);
+        if (AppConfig.LOG_LOADING_INFO) {
+          console.log('Supabase URL generated:', { original: url, quality, result: supabaseUrl });
+        }
+        return supabaseUrl;
       } else {
         // Use local photos (original behavior)
         const parts = url.split('/');
