@@ -27,7 +27,7 @@ export const metadata: Metadata = {
   metadataBase: new URL('https://cuon-album.vercel.app'),
   openGraph: {
     title: "🎓 Album Tốt Nghiệp - 2025",
-    description: "Album ảnh tốt nghiệp đặc biệt - Lưu giữ những khoảnh khắc đáng nhớ của các em học sinh. Chúc mừng tốt nghiệp! 🎉",
+    description: "Album ảnh tốt nghiệp 2025 - Hoa Sen University. Chúc mừng tốt nghiệp! 🎉",
     url: 'https://cuon-album.vercel.app',
     siteName: 'Howls Studio',
     images: [
@@ -44,7 +44,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: "🎓 Album Tốt Nghiệp - Cuốn Studio",
-    description: "Album ảnh tốt nghiệp đặc biệt - Lưu giữ những khoảnh khắc đáng nhớ của các em học sinh. Chúc mừng tốt nghiệp! 🎉",
+    description: "Album ảnh tốt nghiệp 2025 - Hoa Sen University. Chúc mừng tốt nghiệp! 🎉",
     images: ['/thumb.jpg'],
     creator: '@banhcuonniengrang',
   },
