@@ -3,6 +3,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { encodeImageUrl, getSupabasePhotoUrl } from '@/utils/imageUtils';
 
+// Move testImages outside component to prevent recreation
+const TEST_IMAGES = [
+  '/photos/DSCF0930.JPG',
+  '/photos/DSCF0931.JPG',
+  '/photos/DSCF0933.JPG'
+];
+
 const TestPage = () => {
   const [testResults, setTestResults] = useState<Array<{
     original: string;
@@ -12,13 +19,7 @@ const TestPage = () => {
     error?: string;
   }>>([]);
 
-  const testImages = [
-    '/photos/DSCF0930.JPG',
-    '/photos/DSCF0931.JPG',
-    '/photos/DSCF0933.JPG'
-  ];
-
-  const testImage = (photoPath: string) => {
+  const testImage = useCallback((photoPath: string) => {
     const encodedPath = encodeImageUrl(photoPath);
     const supabaseUrl = getSupabasePhotoUrl(photoPath);
     const img = new Image();
@@ -55,12 +56,12 @@ const TestPage = () => {
     };
     
     img.src = encodedPath;
-  };
+  }, []);
 
   const runAllTests = useCallback(() => {
     setTestResults([]);
-    testImages.forEach(testImage);
-  }, [testImages]);
+    TEST_IMAGES.forEach(testImage);
+  }, [testImage]);
 
   useEffect(() => {
     runAllTests();
@@ -72,7 +73,7 @@ const TestPage = () => {
         <h1 className="text-3xl font-bold text-white mb-8">Supabase Image Loading Test</h1>
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {testImages.map((photoPath, index) => {
+          {TEST_IMAGES.map((photoPath, index) => {
             const encodedPath = encodeImageUrl(photoPath);
             const supabaseUrl = getSupabasePhotoUrl(photoPath);
             const result = testResults.find(r => r.original === photoPath);
@@ -85,7 +86,7 @@ const TestPage = () => {
                 
                 <div className="mb-4">
                   <img
-                    src={encodedPath}
+                    src={encodeImageUrl(photoPath)}
                     alt={photoPath.split('/').pop()}
                     className="w-full h-48 object-cover rounded"
                     onLoad={() => console.log('✅ Direct img load success:', photoPath)}

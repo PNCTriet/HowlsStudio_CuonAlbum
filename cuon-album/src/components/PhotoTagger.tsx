@@ -63,7 +63,7 @@ const PhotoTagger: React.FC<PhotoTaggerProps> = ({
       <div className="bg-gray-800 rounded-xl p-4">
         <div className="relative group">
           <img
-            src={encodeImageUrl(photoPath)}
+            src={encodeImageUrl(photoPath, 'thumbnail')}
             alt={`Photo ${fileName}`}
             className="max-h-[60vh] w-full object-contain rounded-lg shadow-lg"
             onError={(e) => {

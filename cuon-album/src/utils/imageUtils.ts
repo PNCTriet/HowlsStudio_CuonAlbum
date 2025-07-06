@@ -21,7 +21,8 @@ export function getSupabasePhotoUrl(photoName: string, quality: ImageQuality = '
     const cleanPhotoName = photoName.split('/').pop() || photoName;
     
     if (!AppConfig.USE_SUPABASE) {
-      return AppConfig.SUPABASE_BASE_URL + encodeURIComponent(cleanPhotoName);
+      // Return local path when not using Supabase
+      return photoName;
     }
 
     // Get transformation parameters based on quality
@@ -61,17 +62,21 @@ export function encodeImageUrl(url: string, quality: ImageQuality = 'preview'): 
         }
         return supabaseUrl;
       } else {
-        // Use local photos (original behavior)
+        // Use local photos - return the original path with proper encoding
         const parts = url.split('/');
         const filename = parts.pop();
         
         if (!filename) return url;
         
-        // Encode only the filename part
+        // Encode only the filename part for local storage
         const encodedFilename = encodeURIComponent(filename);
         
-        // Reconstruct the URL
-        return [...parts, encodedFilename].join('/');
+        // Reconstruct the URL for local storage
+        const localUrl = [...parts, encodedFilename].join('/');
+        if (AppConfig.LOG_LOADING_INFO) {
+          console.log('Local URL generated:', { original: url, result: localUrl });
+        }
+        return localUrl;
       }
     }
     

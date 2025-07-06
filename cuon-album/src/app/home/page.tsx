@@ -16,11 +16,23 @@ import {
   IconUser,
   IconPhoto,
   IconCheck,
-  IconMessage
+  IconMessage,
+  IconHeart,
+  IconSchool
 } from '@tabler/icons-react';
 
+// Đặt normalizeAvatarPath lên đầu file, trước mọi useMemo
+const normalizeAvatarPath = (path: string): string => {
+  // Đảm bảo path luôn có prefix đúng và Unicode NFC
+  if (!path) return '';
+  let norm = path;
+  if (!norm.startsWith('/avatars/')) {
+    norm = '/avatars/' + norm.replace(/^\/?avatars\//, '');
+  }
+  return norm.normalize('NFC');
+};
+
 const HomePage: React.FC = () => {
-  const [photoPaths, setPhotoPaths] = useState<string[]>([]);
   const [avatarPaths, setAvatarPaths] = useState<string[]>([]);
   const [tags, setTags] = useState<TagData>({});
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,6 +47,7 @@ const HomePage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [saveNotification, setSaveNotification] = useState({ message: '', isVisible: false });
   const [showBackupModal, setShowBackupModal] = useState(false);
+  const [showGraduationModal, setShowGraduationModal] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
   const [showPhotoDetail, setShowPhotoDetail] = useState(false);
@@ -45,11 +58,17 @@ const HomePage: React.FC = () => {
   useEffect(() => {
     const loadPaths = async () => {
       try {
+        console.log('=== CONFIG DEBUG ===');
+        console.log('USE_SUPABASE:', AppConfig.USE_SUPABASE);
+        console.log('Current mode:', AppConfig.USE_SUPABASE ? 'SUPABASE' : 'LOCAL');
+        console.log('===================');
+        
         // Load avatar paths first
         const avatarResponse = await fetch('/data/avatars.json');
         if (avatarResponse.ok) {
           const avatarData = await avatarResponse.json();
-          const avatarPathsWithPrefix = avatarData.map((avatar: string) => `/avatars/${avatar}`);
+          // Normalize avatar paths to NFC and add prefix
+          const avatarPathsWithPrefix = avatarData.map((avatar: string) => normalizeAvatarPath(avatar));
           setAvatarPaths(avatarPathsWithPrefix);
         } else {
           console.error('Failed to load avatars.json');
@@ -66,9 +85,7 @@ const HomePage: React.FC = () => {
             const photoPathsFromTags = Object.keys(tagsData).map(photoName => `/photos/${photoName}`);
             
             console.log('Supabase mode: Loaded', photoPathsFromTags.length, 'photos from tags.json');
-            
-            // For Supabase mode, trust that all photos exist (no need to check)
-            setPhotoPaths(photoPathsFromTags);
+            setFilteredPhotos(photoPathsFromTags); // Set filteredPhotos for pagination
           } else {
             console.error('Failed to load tags.json');
             setShowBackupModal(true);
@@ -79,12 +96,14 @@ const HomePage: React.FC = () => {
           const response = await fetch('/data/tags_local.json');
           if (response.ok) {
             const tagsData = await response.json();
-            // Extract photo paths directly
+            // Extract photo paths directly (already in /photos/ format)
             const photoPathsFromTags = Object.keys(tagsData);
+            
+            console.log('Local mode: Loaded', photoPathsFromTags.length, 'photos from tags_local.json');
             
             // Filter to only include photos that actually exist (local mode only)
             const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
-            setPhotoPaths(existingPhotoPaths);
+            setFilteredPhotos(existingPhotoPaths); // Set filteredPhotos for pagination
           } else {
             console.error('Failed to load tags_local.json');
           }
@@ -118,8 +137,6 @@ const HomePage: React.FC = () => {
   // Load tags and stats when photoPaths change
   useEffect(() => {
     const loadData = async () => {
-      if (photoPaths.length === 0) return;
-      
       try {
         const [loadedTags, loadedStats, loadedAvatarStats] = await Promise.all([
           StorageService.loadTags(),
@@ -140,8 +157,14 @@ const HomePage: React.FC = () => {
         });
         
         setTags(normalizedTags);
-        setStats({ ...loadedStats, totalPhotos: photoPaths.length });
+        setStats({ ...loadedStats, totalPhotos: Object.keys(normalizedTags).length });
         setAvatarStats(loadedAvatarStats);
+        
+        console.log('Data loaded:', {
+          tagsCount: Object.keys(normalizedTags).length,
+          stats: loadedStats,
+          avatarStatsCount: Object.keys(loadedAvatarStats).length
+        });
       } catch (error) {
         console.error('Failed to load data:', error);
       } finally {
@@ -149,31 +172,29 @@ const HomePage: React.FC = () => {
       }
     };
     loadData();
-  }, [photoPaths.length]);
+  }, []); // Remove dependency on photoPaths.length
 
   // Memoize expensive operations
   const memoizedPhotoAvatars = useMemo(() => {
     const result: Record<string, string[]> = {};
-    Object.keys(tags).forEach(photoPath => {
-      result[photoPath] = tags[photoPath] || [];
+    Object.keys(tags).forEach(tagsKey => {
+      // Convert tagsKey to photoPath format
+      const photoPath = AppConfig.USE_SUPABASE ? `/photos/${tagsKey}` : tagsKey;
+      result[photoPath] = (tags[tagsKey] || []).map(avatarPath => {
+        // Always normalize avatar path to /avatars/xxx.png with Unicode normalization
+        return normalizeAvatarPath(avatarPath);
+      });
     });
     return result;
   }, [tags]);
 
-  // Helper function to normalize avatar path (handle Unicode encoding differences)
-  const normalizeAvatarPath = (path: string): string => {
-    let normalized = path;
-    if (!normalized.startsWith('/avatars/')) {
-      normalized = `/avatars/${normalized.replace(/^\/+/, '')}`;
-    }
-    // Normalize Unicode characters to handle different encodings
-    return normalized.normalize('NFC');
-  };
-
   // Create reverse mapping: avatar -> photos for better performance
   const memoizedAvatarToPhotos = useMemo(() => {
     const result: Record<string, string[]> = {};
-    Object.entries(tags).forEach(([photoPath, avatarPaths]) => {
+    Object.entries(tags).forEach(([tagsKey, avatarPaths]) => {
+      // Convert tagsKey to photoPath format consistently
+      const photoPath = AppConfig.USE_SUPABASE ? `/photos/${tagsKey}` : tagsKey;
+      
       avatarPaths.forEach(avatarPath => {
         // Always normalize avatar path to /avatars/xxx.png with Unicode normalization
         const normalized = normalizeAvatarPath(avatarPath);
@@ -186,15 +207,34 @@ const HomePage: React.FC = () => {
 
   const memoizedPhotoAvatarsForDisplay = useMemo(() => {
     const result: Record<string, string[]> = {};
-    Object.keys(tags).forEach(photoPath => {
-      result[photoPath] = (tags[photoPath] || []).map(avatar => encodeImageUrl(avatar));
+    Object.keys(tags).forEach(tagsKey => {
+      // Convert tagsKey to photoPath format
+      const photoPath = AppConfig.USE_SUPABASE ? `/photos/${tagsKey}` : tagsKey;
+      result[photoPath] = (tags[tagsKey] || []).map(avatar => encodeImageUrl(avatar));
     });
     return result;
   }, [tags]);
 
   // Filter photos based on search and selected avatars
   const filteredPhotosMemo = useMemo(() => {
+    // Get photo paths from tags, ensuring they all have /photos/ prefix
+    let photoPaths = Object.keys(tags);
+    
+    // In Supabase mode, keys are just filenames, need to add /photos/ prefix
+    // In local mode, keys already have /photos/ prefix
+    if (AppConfig.USE_SUPABASE) {
+      photoPaths = photoPaths.map(filename => `/photos/${filename}`);
+    }
+    
     let filtered = photoPaths;
+    
+    console.log('Filter debug:', {
+      totalPhotos: filtered.length,
+      searchTerm,
+      selectedAvatars: selectedAvatars.length,
+      tagsKeys: Object.keys(tags).slice(0, 5), // First 5 for debug
+      mode: AppConfig.USE_SUPABASE ? 'SUPABASE' : 'LOCAL'
+    });
 
     // Filter by search term (avatar name or photo name)
     if (searchTerm) {
@@ -203,42 +243,53 @@ const HomePage: React.FC = () => {
       const matchingAvatars = avatarPaths.filter(avatar => 
         getImageDisplayName(avatar).toLowerCase().includes(searchLower)
       );
+      console.log('Search debug:', { searchTerm, matchingAvatars: matchingAvatars.length });
+      
       if (matchingAvatars.length > 0) {
-        // If avatars found, filter photos by those avatars
-        filtered = filtered.filter(photo => {
-          const photoTags = tags[photo] || [];
-          // Normalize all avatar paths before compare
-          return matchingAvatars.some(avatar => {
-            const normAvatar = normalizeAvatarPath(avatar);
-            return photoTags.some(tag => {
-              const normTag = normalizeAvatarPath(tag);
-              return normTag === normAvatar;
-            });
-          });
+        // If avatars found, filter photos by those avatars using memoizedAvatarToPhotos
+        const matchingPhotoSets = matchingAvatars.map(avatar => {
+          const normAvatar = normalizeAvatarPath(avatar);
+          return memoizedAvatarToPhotos[normAvatar] || [];
         });
+        
+        // Get intersection of all matching photo sets
+        if (matchingPhotoSets.length > 0) {
+          const firstSet = new Set(matchingPhotoSets[0]);
+          const intersection = matchingPhotoSets.slice(1).reduce((acc, photoSet) => {
+            return new Set([...acc].filter(photo => photoSet.includes(photo)));
+          }, firstSet);
+          filtered = filtered.filter(photo => intersection.has(photo));
+        }
       } else {
         // If no avatars found, search in photo names
-        filtered = filtered.filter(photo => 
-          photo.toLowerCase().includes(searchLower)
+        filtered = filtered.filter(photoPath => 
+          photoPath.toLowerCase().includes(searchLower)
         );
       }
     }
-    // Filter by selected avatars
+    
+    // Filter by selected avatars using memoizedAvatarToPhotos
     if (selectedAvatars.length > 0) {
-      filtered = filtered.filter(photo => {
-        const photoTags = tags[photo] || [];
-        // Normalize all avatar paths before compare
-        return selectedAvatars.some(avatar => {
-          const normAvatar = normalizeAvatarPath(avatar);
-          return photoTags.some(tag => {
-            const normTag = normalizeAvatarPath(tag);
-            return normTag === normAvatar;
-          });
-        });
+      console.log('Avatar filter debug:', { selectedAvatars });
+      
+      const selectedPhotoSets = selectedAvatars.map(avatar => {
+        const normAvatar = normalizeAvatarPath(avatar);
+        return memoizedAvatarToPhotos[normAvatar] || [];
       });
+      
+      // Get intersection of all selected avatar photo sets
+      if (selectedPhotoSets.length > 0) {
+        const firstSet = new Set(selectedPhotoSets[0]);
+        const intersection = selectedPhotoSets.slice(1).reduce((acc, photoSet) => {
+          return new Set([...acc].filter(photo => photoSet.includes(photo)));
+        }, firstSet);
+        filtered = filtered.filter(photo => intersection.has(photo));
+      }
     }
+    
+    console.log('Filter result:', { filteredCount: filtered.length });
     return filtered;
-  }, [searchTerm, selectedAvatars, tags, photoPaths, avatarPaths]);
+  }, [searchTerm, selectedAvatars, tags, avatarPaths, memoizedAvatarToPhotos]);
 
   // Update filtered photos when memoized result changes
   useEffect(() => {
@@ -404,7 +455,14 @@ const HomePage: React.FC = () => {
       {/* Header */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 sm:px-6 py-3 sm:py-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <h1 className="text-xl sm:text-2xl font-bold text-white">Bánh Cuốn Gallery</h1>
+          <h1 
+            className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2 cursor-pointer hover:text-blue-300 transition-colors"
+            onClick={() => setShowGraduationModal(true)}
+          >
+            <IconSchool size={24} className="text-blue-400" />
+            Cuốn Album
+            <IconHeart size={16} className="text-red-400 animate-pulse" />
+          </h1>
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4">
             {/* Hidden Tag Page Button - Commented out as requested
             <a
@@ -683,16 +741,79 @@ const HomePage: React.FC = () => {
       />
       
       {/* Photo Detail Modal */}
-      <PhotoDetailModal
-        isOpen={showPhotoDetail}
-        onClose={() => setShowPhotoDetail(false)}
-        photoPath={selectedPhotoForDetail}
-        photoAvatars={getPhotoAvatars(selectedPhotoForDetail)}
-        photoAvatarsForDisplay={getPhotoAvatarsForDisplay(selectedPhotoForDetail)}
-        allPhotos={filteredPhotos}
-        onPhotoChange={handlePhotoChange}
-        avatarToPhotosMap={memoizedPhotoAvatars}
-      />
+      {(() => {
+        const photoAvatars = getPhotoAvatars(selectedPhotoForDetail);
+        const photoAvatarsForDisplay = getPhotoAvatarsForDisplay(selectedPhotoForDetail);
+        
+        console.log('PhotoDetailModal debug:', {
+          selectedPhotoForDetail,
+          photoAvatars,
+          photoAvatarsForDisplay,
+          photoAvatarsLength: photoAvatars.length,
+          photoAvatarsForDisplayLength: photoAvatarsForDisplay.length
+        });
+        
+        return (
+          <PhotoDetailModal
+            isOpen={showPhotoDetail}
+            onClose={() => setShowPhotoDetail(false)}
+            photoPath={selectedPhotoForDetail}
+            photoAvatars={photoAvatars}
+            photoAvatarsForDisplay={photoAvatarsForDisplay}
+            allPhotos={filteredPhotos}
+            onPhotoChange={handlePhotoChange}
+            avatarToPhotosMap={memoizedAvatarToPhotos}
+          />
+        );
+      })()}
+
+      {/* Graduation Modal */}
+      {showGraduationModal && (
+        <div className="fixed inset-0 flex items-center justify-center z-50" 
+          style={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.3)',
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)'
+          }}
+        >
+          <div className="bg-gradient-to-br from-blue-900 to-purple-900 rounded-2xl p-8 max-w-md w-full mx-4 shadow-2xl border border-blue-500/30">
+            <div className="text-center">
+              <div className="flex justify-center mb-4">
+                <IconSchool size={48} className="text-yellow-400" />
+                <IconHeart size={32} className="text-red-400 animate-pulse ml-2" />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-4">
+                🎓 Mừng các em tốt nghiệp! 🎉
+              </h3>
+              
+              <div className="bg-white/10 rounded-lg p-4 mb-6">
+              <p className="text-yellow-200 text-sm font-medium">
+                  ✨ Chúc các em luôn mạnh mẽ, kiên cường và thành công trên mọi chặng đường phía trước! ✨
+                </p>
+                <p className="text-gray-200 text-sm leading-relaxed">
+                  Cuốn rất vui vì đã có cơ hội lưu lại cột mốc tươi đẹp này của em.{' '} đừng quên tag{' '}
+                  <a 
+                    href="https://www.instagram.com/banhcuonniengrang/" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-blue-300 font-semibold hover:text-blue-200 underline"
+                  >
+                    @banhcuonniengrang
+                  </a>{' '}
+                  trên story để cùng chia sẻ niềm vui này nhé xốp ~ 💕
+                </p>
+              </div>
+              <button
+                onClick={() => setShowGraduationModal(false)}
+                className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white rounded-lg font-semibold transition-all transform hover:scale-105"
+              >
+                💖💖💖
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Backup Modal */}
       {showBackupModal && (

@@ -41,16 +41,15 @@ const TagPage: React.FC = () => {
             // Extract photo names and convert to paths
             const photoPathsFromTags = Object.keys(tagsData).map(photoName => `/photos/${photoName}`);
             
-            // Filter to only include photos that actually exist
-            const existingPhotoPaths = await filterExistingPhotos(photoPathsFromTags);
-            setPhotoPaths(existingPhotoPaths);
+            // For Supabase mode, trust that all photos exist (no need to check)
+            setPhotoPaths(photoPathsFromTags);
           }
         } else {
           // Load photo paths from tags_local.json (local mode)
           const response = await fetch('/data/tags_local.json');
           if (response.ok) {
             const tagsData = await response.json();
-            // Extract photo paths directly
+            // Extract photo paths directly (already in /photos/ format)
             const photoPathsFromTags = Object.keys(tagsData);
             
             // Filter to only include photos that actually exist
